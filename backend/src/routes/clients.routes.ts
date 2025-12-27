@@ -1,9 +1,8 @@
 import { Router } from 'express';
-import { PrismaClient } from '@prisma/client';
+import { supabase } from '../lib/supabase';
 import { AuthRequest } from '../middleware/auth.middleware';
 
 const router = Router();
-const prisma = new PrismaClient();
 
 /**
  * GET /api/clients
@@ -16,18 +15,22 @@ router.get('/', async (req: AuthRequest, res) => {
             return res.status(401).json({ error: 'Não autenticado' });
         }
 
-        const pendingSales = await prisma.sale.findMany({
-            where: {
-                userId,
-                status: 'pending',
-            },
-            orderBy: { date: 'desc' },
-        });
+        const { data: pendingSales, error } = await supabase
+            .from('sales')
+            .select('*')
+            .eq('userId', userId)
+            .eq('status', 'pending')
+            .order('date', { ascending: false });
+
+        if (error) {
+            console.error('Supabase get pending sales error:', error);
+            throw error;
+        }
 
         // Group by client
         const clientMap = new Map<string, { totalDebt: number; lastItem: string }>();
 
-        pendingSales.forEach(sale => {
+        (pendingSales || []).forEach((sale: any) => {
             const existing = clientMap.get(sale.clientName);
             if (existing) {
                 existing.totalDebt += sale.value;
@@ -65,16 +68,17 @@ router.get('/:name/sales', async (req: AuthRequest, res) => {
 
         const { name } = req.params;
 
-        const sales = await prisma.sale.findMany({
-            where: {
-                userId,
-                clientName: {
-                    equals: name,
-                    mode: 'insensitive',
-                },
-            },
-            orderBy: { date: 'desc' },
-        });
+        const { data: sales, error } = await supabase
+            .from('sales')
+            .select('*')
+            .eq('userId', userId)
+            .ilike('clientName', name)
+            .order('date', { ascending: false });
+
+        if (error) {
+            console.error('Supabase get client sales error:', error);
+            throw error;
+        }
 
         res.json({ sales });
     } catch (error) {

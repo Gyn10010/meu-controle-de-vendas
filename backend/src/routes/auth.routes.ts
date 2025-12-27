@@ -1,10 +1,9 @@
 import { Router } from 'express';
-import { PrismaClient } from '@prisma/client';
+import { supabase } from '../lib/supabase';
 import { authService } from '../services/auth.service';
 import { validate, schemas } from '../middleware/validation.middleware';
 
 const router = Router();
-const prisma = new PrismaClient();
 
 /**
  * POST /api/auth/register
@@ -15,9 +14,11 @@ router.post('/register', validate(schemas.register), async (req, res) => {
         const { email, password, name } = req.body;
 
         // Check if user already exists
-        const existingUser = await prisma.user.findUnique({
-            where: { email },
-        });
+        const { data: existingUser } = await supabase
+            .from('users')
+            .select('id')
+            .eq('email', email)
+            .single();
 
         if (existingUser) {
             return res.status(400).json({ error: 'Email já cadastrado' });
@@ -27,13 +28,22 @@ router.post('/register', validate(schemas.register), async (req, res) => {
         const hashedPassword = await authService.hashPassword(password);
 
         // Create user
-        const user = await prisma.user.create({
-            data: {
+        const { data: user, error } = await supabase
+            .from('users')
+            .insert({
+                id: crypto.randomUUID(), // SQLite/Prisma used to handle this, verify if Supabase/Postgres needs explicit ID or if default(uuid()) works. SDK might not trigger default? It usually does if omitted, but let's see. schema.prisma had @default(uuid()).
                 email,
                 password: hashedPassword,
                 name,
-            },
-        });
+                updatedAt: new Date().toISOString() // Manual timestamp if needed, but DB should handle default(now())
+            })
+            .select() // Important to get return data
+            .single();
+
+        if (error || !user) {
+            console.error('Supabase create error:', error);
+            throw error;
+        }
 
         // Generate token
         const token = authService.generateToken({
@@ -64,11 +74,13 @@ router.post('/login', validate(schemas.login), async (req, res) => {
         const { email, password } = req.body;
 
         // Find user
-        const user = await prisma.user.findUnique({
-            where: { email },
-        });
+        const { data: user, error } = await supabase
+            .from('users')
+            .select('*')
+            .eq('email', email)
+            .single();
 
-        if (!user) {
+        if (error || !user) {
             return res.status(401).json({ error: 'Credenciais inválidas' });
         }
 
@@ -112,17 +124,13 @@ router.get('/me', async (req, res) => {
             return res.status(401).json({ error: 'Não autenticado' });
         }
 
-        const user = await prisma.user.findUnique({
-            where: { id: userId },
-            select: {
-                id: true,
-                email: true,
-                name: true,
-                createdAt: true,
-            },
-        });
+        const { data: user, error } = await supabase
+            .from('users')
+            .select('id, email, name, createdAt')
+            .eq('id', userId)
+            .single();
 
-        if (!user) {
+        if (error || !user) {
             return res.status(404).json({ error: 'Usuário não encontrado' });
         }
 

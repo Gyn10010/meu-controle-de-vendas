@@ -1,10 +1,9 @@
 import { Router } from 'express';
-import { PrismaClient } from '@prisma/client';
+import { supabase } from '../lib/supabase';
 import { AuthRequest } from '../middleware/auth.middleware';
 import { validate, schemas } from '../middleware/validation.middleware';
 
 const router = Router();
-const prisma = new PrismaClient();
 
 /**
  * GET /api/sales
@@ -19,31 +18,34 @@ router.get('/', async (req: AuthRequest, res) => {
 
         const { clientName, startDate, endDate, status } = req.query;
 
-        const where: any = { userId };
+        let query = supabase
+            .from('sales')
+            .select('*')
+            .eq('userId', userId)
+            .order('date', { ascending: false });
 
         if (clientName) {
-            where.clientName = {
-                contains: clientName as string,
-                mode: 'insensitive',
-            };
+            query = query.ilike('clientName', `%${clientName}%`);
         }
 
         if (startDate) {
-            where.date = { ...where.date, gte: startDate as string };
+            query = query.gte('date', startDate);
         }
 
         if (endDate) {
-            where.date = { ...where.date, lte: endDate as string };
+            query = query.lte('date', endDate);
         }
 
         if (status) {
-            where.status = status as string;
+            query = query.eq('status', status);
         }
 
-        const sales = await prisma.sale.findMany({
-            where,
-            orderBy: { date: 'desc' },
-        });
+        const { data: sales, error } = await query;
+
+        if (error) {
+            console.error('Supabase get sales error:', error);
+            throw error;
+        }
 
         res.json({ sales });
     } catch (error) {
@@ -65,8 +67,10 @@ router.post('/', validate(schemas.createSale), async (req: AuthRequest, res) => 
 
         const { clientName, itemSold, value, date, status = 'pending' } = req.body;
 
-        const sale = await prisma.sale.create({
-            data: {
+        const { data: sale, error } = await supabase
+            .from('sales')
+            .insert({
+                id: crypto.randomUUID(),
                 userId,
                 clientName,
                 itemSold,
@@ -74,8 +78,15 @@ router.post('/', validate(schemas.createSale), async (req: AuthRequest, res) => 
                 date,
                 status,
                 paidAt: status === 'paid' ? new Date().toISOString().split('T')[0] : null,
-            },
-        });
+                updatedAt: new Date().toISOString()
+            })
+            .select()
+            .single();
+
+        if (error) {
+            console.error('Supabase create sale error:', error);
+            throw error;
+        }
 
         res.status(201).json({ sale });
     } catch (error) {
@@ -99,21 +110,32 @@ router.patch('/:id/status', validate(schemas.updateSaleStatus), async (req: Auth
         const { status } = req.body;
 
         // Verify sale belongs to user
-        const existingSale = await prisma.sale.findFirst({
-            where: { id, userId },
-        });
+        const { data: existingSale, error: fetchError } = await supabase
+            .from('sales')
+            .select('id')
+            .eq('id', id)
+            .eq('userId', userId)
+            .single();
 
-        if (!existingSale) {
+        if (fetchError || !existingSale) {
             return res.status(404).json({ error: 'Venda não encontrada' });
         }
 
-        const sale = await prisma.sale.update({
-            where: { id },
-            data: {
+        const { data: sale, error } = await supabase
+            .from('sales')
+            .update({
                 status,
-                paidAt: status === 'paid' ? new Date().toISOString().split('T')[0] : null
-            },
-        });
+                paidAt: status === 'paid' ? new Date().toISOString().split('T')[0] : null,
+                updatedAt: new Date().toISOString()
+            })
+            .eq('id', id)
+            .select()
+            .single();
+
+        if (error) {
+            console.error('Supabase update sale error:', error);
+            throw error;
+        }
 
         res.json({ sale });
     } catch (error) {
@@ -136,17 +158,26 @@ router.delete('/:id', async (req: AuthRequest, res) => {
         const { id } = req.params;
 
         // Verify sale belongs to user
-        const existingSale = await prisma.sale.findFirst({
-            where: { id, userId },
-        });
+        const { data: existingSale, error: fetchError } = await supabase
+            .from('sales')
+            .select('id')
+            .eq('id', id)
+            .eq('userId', userId)
+            .single();
 
-        if (!existingSale) {
+        if (fetchError || !existingSale) {
             return res.status(404).json({ error: 'Venda não encontrada' });
         }
 
-        await prisma.sale.delete({
-            where: { id },
-        });
+        const { error } = await supabase
+            .from('sales')
+            .delete()
+            .eq('id', id);
+
+        if (error) {
+            console.error('Supabase delete sale error:', error);
+            throw error;
+        }
 
         res.json({ message: 'Venda excluída com sucesso' });
     } catch (error) {
@@ -166,13 +197,19 @@ router.get('/export/csv', async (req: AuthRequest, res) => {
             return res.status(401).json({ error: 'Não autenticado' });
         }
 
-        const sales = await prisma.sale.findMany({
-            where: { userId },
-            orderBy: { date: 'desc' },
-        });
+        const { data: sales, error } = await supabase
+            .from('sales')
+            .select('*')
+            .eq('userId', userId)
+            .order('date', { ascending: false });
+
+        if (error) {
+            console.error('Supabase export CSV error:', error);
+            throw error;
+        }
 
         const headers = ['Data', 'Cliente', 'Item', 'Valor', 'Status', 'Data Pagamento'];
-        const rows = sales.map(s => [
+        const rows = sales.map((s: any) => [
             s.date,
             s.clientName,
             s.itemSold,
@@ -203,10 +240,16 @@ router.get('/export/json', async (req: AuthRequest, res) => {
             return res.status(401).json({ error: 'Não autenticado' });
         }
 
-        const sales = await prisma.sale.findMany({
-            where: { userId },
-            orderBy: { date: 'desc' },
-        });
+        const { data: sales, error } = await supabase
+            .from('sales')
+            .select('*')
+            .eq('userId', userId)
+            .order('date', { ascending: false });
+
+        if (error) {
+            console.error('Supabase export JSON error:', error);
+            throw error;
+        }
 
         res.setHeader('Content-Type', 'application/json');
         res.setHeader('Content-Disposition', 'attachment; filename=meu_controle_vendas_backup.json');

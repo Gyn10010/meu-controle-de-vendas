@@ -1,10 +1,9 @@
 import { Router } from 'express';
-import { PrismaClient } from '@prisma/client';
+import { supabase } from '../lib/supabase';
 import { AuthRequest } from '../middleware/auth.middleware';
 import { geminiService } from '../services/gemini.service';
 
 const router = Router();
-const prisma = new PrismaClient();
 
 /**
  * POST /api/insights/generate
@@ -18,12 +17,18 @@ router.post('/generate', async (req: AuthRequest, res) => {
         }
 
         // Get user's sales
-        const sales = await prisma.sale.findMany({
-            where: { userId },
-            orderBy: { date: 'desc' },
-        });
+        const { data: sales, error } = await supabase
+            .from('sales')
+            .select('*')
+            .eq('userId', userId)
+            .order('date', { ascending: false });
 
-        if (sales.length === 0) {
+        if (error) {
+            console.error('Supabase get sales error:', error);
+            throw error;
+        }
+
+        if (!sales || sales.length === 0) {
             return res.json({
                 insights: 'Você ainda não tem vendas registradas. Comece adicionando suas primeiras vendas para receber insights personalizados!'
             });

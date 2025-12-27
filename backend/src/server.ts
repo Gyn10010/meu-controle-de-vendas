@@ -50,12 +50,14 @@ app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
     res.status(500).json({ error: 'Erro interno do servidor' });
 });
 
-// Start server
-app.listen(PORT, () => {
-    console.log(`\n🚀 Servidor rodando na porta ${PORT}`);
-    console.log(`📍 Health check: http://localhost:${PORT}/health`);
-    console.log(`📍 API Base: http://localhost:${PORT}/api`);
-    console.log(`\n✨ Pronto para receber requisições!\n`);
-});
+// Start server only if run directly
+if (require.main === module) {
+    app.listen(PORT, () => {
+        console.log(`\n🚀 Servidor rodando na porta ${PORT}`);
+        console.log(`📍 Health check: http://localhost:${PORT}/health`);
+        console.log(`📍 API Base: http://localhost:${PORT}/api`);
+        console.log(`\n✨ Pronto para receber requisições!\n`);
+    });
+}
 
 export default app;
