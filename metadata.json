@@ -1,0 +1,5 @@
+{
+  "name": "Meu Controle de Vendas",
+  "description": "Uma aplicação completa para gerenciamento de vendas e controle de dívidas, com recursos de importação/exportação e insights inteligentes alimentados por IA.",
+  "requestFramePermissions": []
+}
