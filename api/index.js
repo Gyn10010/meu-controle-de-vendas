@@ -122,6 +122,40 @@ export default async (req, res) => {
             return;
         }
 
+        // Route: GET /api/auth/me
+        if (req.url.includes('/me') && req.method === 'GET') {
+            const authHeader = req.headers.authorization || req.headers.Authorization;
+
+            if (!authHeader) {
+                res.status(401).json({ error: 'Token não fornecido' });
+                return;
+            }
+
+            const token = authHeader.replace('Bearer ', '');
+
+            try {
+                const decoded = jwt.verify(token, JWT_SECRET);
+
+                // Get user from database
+                const { data: user, error } = await supabase
+                    .from('users')
+                    .select('id, email, name')
+                    .eq('id', decoded.userId)
+                    .single();
+
+                if (error || !user) {
+                    res.status(401).json({ error: 'Usuário não encontrado' });
+                    return;
+                }
+
+                res.status(200).json({ user });
+                return;
+            } catch (error) {
+                res.status(401).json({ error: 'Token inválido' });
+                return;
+            }
+        }
+
         // Route: GET /api/diagnose
         if (req.url.includes('/diagnose')) {
             const envStatus = {
