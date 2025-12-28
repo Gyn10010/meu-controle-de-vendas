@@ -87,9 +87,7 @@ export default async (req, res) => {
                 .insert({
                     email,
                     password: hashedPassword,
-                    name,
-                    created_at: new Date().toISOString(),
-                    updated_at: new Date().toISOString()
+                    name
                 })
                 .select('id, email, name')
                 .single();
