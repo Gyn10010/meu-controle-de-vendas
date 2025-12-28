@@ -3,11 +3,11 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_KEY;
+const supabaseUrl = process.env.SUPABASE_URL?.replace(/"/g, '') || '';
+const supabaseKey = process.env.SUPABASE_KEY?.replace(/"/g, '') || '';
 
 if (!supabaseUrl || !supabaseKey) {
-    throw new Error('Supabase URL and Key must be provided in .env');
+    console.error('CRITICAL: Supabase URL/Key missing in environment variables');
 }
 
 export const supabase = createClient(supabaseUrl, supabaseKey);
