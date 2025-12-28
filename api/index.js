@@ -32,7 +32,7 @@ export default async (req, res) => {
         }
 
         // Route: POST /api/auth/register
-        if (req.url === '/api/auth/register' && req.method === 'POST') {
+        if (req.url.includes('/register') && req.method === 'POST') {
             const { email, password, name } = body;
 
             // Check if user exists
@@ -85,7 +85,7 @@ export default async (req, res) => {
         }
 
         // Route: POST /api/auth/login
-        if (req.url === '/api/auth/login' && req.method === 'POST') {
+        if (req.url.includes('/login') && req.method === 'POST') {
             const { email, password } = body;
 
             // Find user
@@ -123,7 +123,7 @@ export default async (req, res) => {
         }
 
         // Route: GET /api/diagnose
-        if (req.url === '/api/diagnose' || req.url === '/diagnose') {
+        if (req.url.includes('/diagnose')) {
             const envStatus = {
                 NODE_ENV: process.env.NODE_ENV,
                 VERCEL: process.env.VERCEL,
@@ -136,7 +136,7 @@ export default async (req, res) => {
         }
 
         // Route: GET /api/health
-        if (req.url === '/api/health' || req.url === '/health') {
+        if (req.url.includes('/health')) {
             res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
             return;
         }
