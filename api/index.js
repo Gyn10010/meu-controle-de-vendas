@@ -1,48 +1,39 @@
-// Vercel Serverless Function Handler
-// This is a simplified JavaScript version that doesn't rely on TypeScript compilation
-const express = require('express');
-const cors = require('cors');
+// Minimal Vercel Serverless Function
+module.exports = (req, res) => {
+    // Set CORS headers
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
-const app = express();
+    // Handle OPTIONS request
+    if (req.method === 'OPTIONS') {
+        res.status(200).end();
+        return;
+    }
 
-// Middleware
-app.use(cors({ origin: '*', credentials: true }));
-app.use(express.json());
+    // Diagnostic endpoint
+    if (req.url === '/api/diagnose' || req.url === '/diagnose') {
+        const envStatus = {
+            NODE_ENV: process.env.NODE_ENV,
+            VERCEL: process.env.VERCEL,
+            hasSupabaseUrl: !!process.env.SUPABASE_URL,
+            hasSupabaseKey: !!process.env.SUPABASE_KEY,
+            hasJwtSecret: !!process.env.JWT_SECRET,
+        };
+        res.status(200).json({ status: 'diagnostic', env: envStatus });
+        return;
+    }
 
-// Health check
-app.get('/api/health', (req, res) => {
-    res.json({ status: 'ok', timestamp: new Date().toISOString() });
-});
+    // Health check
+    if (req.url === '/api/health' || req.url === '/health') {
+        res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
+        return;
+    }
 
-// Diagnostic endpoint
-app.get('/api/diagnose', (req, res) => {
-    const envStatus = {
-        NODE_ENV: process.env.NODE_ENV,
-        VERCEL: process.env.VERCEL,
-        hasSupabaseUrl: !!process.env.SUPABASE_URL,
-        hasSupabaseKey: !!process.env.SUPABASE_KEY,
-        supabaseUrlStart: process.env.SUPABASE_URL ? process.env.SUPABASE_URL.substring(0, 8) + '...' : 'MISSING',
-        hasJwtSecret: !!process.env.JWT_SECRET,
-        hasJwtExpires: !!process.env.JWT_EXPIRES_IN,
-    };
-    res.json({ status: 'diagnostic', env: envStatus });
-});
-
-// Test endpoint
-app.post('/api/test', (req, res) => {
-    res.json({ message: 'API is working!', body: req.body });
-});
-
-// 404 handler
-app.use((req, res) => {
-    res.status(404).json({ error: 'Route not found', path: req.path });
-});
-
-// Error handler
-app.use((err, req, res, next) => {
-    console.error('Error:', err);
-    res.status(500).json({ error: 'Internal server error', message: err.message });
-});
-
-// Export for Vercel
-module.exports = app;
+    // Default response
+    res.status(200).json({
+        message: 'API is working!',
+        url: req.url,
+        method: req.method
+    });
+};
