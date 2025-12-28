@@ -1,5 +1,5 @@
-// Minimal Vercel Serverless Function
-module.exports = (req, res) => {
+// Minimal Vercel Serverless Function (ES Module)
+export default (req, res) => {
     // Set CORS headers
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
