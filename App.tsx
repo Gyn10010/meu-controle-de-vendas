@@ -49,9 +49,10 @@ const App: React.FC = () => {
     try {
       setLoading(true);
       const response = await apiService.getSales();
-      setSales(response.sales);
+      setSales(Array.isArray(response) ? response : []);
     } catch (error) {
       console.error('Error loading sales:', error);
+      setSales([]);
     } finally {
       setLoading(false);
     }
