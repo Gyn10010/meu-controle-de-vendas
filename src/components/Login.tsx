@@ -24,9 +24,30 @@ const Login: React.FC = () => {
                 await register(formData.email, formData.password, formData.name);
             }
         } catch (err: any) {
-            // Enhanced error handling
-            const message = err.response?.data?.error || err.message || 'Erro ao realizar login';
-            setError(typeof message === 'object' ? JSON.stringify(message) : message);
+            console.error('Full Login Error:', err); // Log full error for debugging
+
+            let message = 'Erro ao realizar login';
+
+            if (err.response?.data?.error) {
+                // Backend sent an error field
+                const backendError = err.response.data.error;
+                if (typeof backendError === 'string') {
+                    message = backendError;
+                } else if (typeof backendError === 'object') {
+                    message = JSON.stringify(backendError); // Stringify if object
+                }
+            } else if (err.response?.data?.message) {
+                message = err.response.data.message;
+            } else if (err.message) {
+                message = err.message;
+            }
+
+            // Fallback for [object Object] case just to be safe
+            if (message === '[object Object]') {
+                message = 'Erro desconhecido (Verifique o console)';
+            }
+
+            setError(message);
         } finally {
             setLoading(false);
         }
