@@ -237,9 +237,9 @@ export default async (req, res) => {
 
             try {
                 const decoded = jwt.verify(token, JWT_SECRET);
-                const { client, item, value, date } = body;
+                const { clientName, itemSold, value, date, status } = body;
 
-                if (!client || !item || !value || !date) {
+                if (!clientName || !itemSold || !value || !date) {
                     res.status(400).json({ error: 'Todos os campos são obrigatórios' });
                     return;
                 }
@@ -249,11 +249,11 @@ export default async (req, res) => {
                     .from('sales')
                     .insert({
                         userId: decoded.userId,
-                        client,
-                        item,
+                        clientName,
+                        itemSold,
                         value: parseFloat(value),
                         date,
-                        status: 'pending'
+                        status: status || 'pending'
                     })
                     .select()
                     .single();
