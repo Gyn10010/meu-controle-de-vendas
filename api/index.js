@@ -189,6 +189,169 @@ export default async (req, res) => {
             }
         }
 
+        // Route: GET /api/sales - Get all sales for user
+        if (req.url && req.url.includes('/sales') && req.method === 'GET' && !req.url.includes('/sales/')) {
+            const authHeader = req.headers.authorization || req.headers.Authorization;
+
+            if (!authHeader) {
+                res.status(401).json({ error: 'Token não fornecido' });
+                return;
+            }
+
+            const token = authHeader.replace('Bearer ', '');
+
+            try {
+                const decoded = jwt.verify(token, JWT_SECRET);
+
+                // Get all sales for this user
+                const { data: sales, error } = await supabase
+                    .from('sales')
+                    .select('*')
+                    .eq('userId', decoded.userId)
+                    .order('date', { ascending: false });
+
+                if (error) {
+                    console.error('Supabase sales fetch error:', error);
+                    res.status(500).json({ error: 'Erro ao buscar vendas' });
+                    return;
+                }
+
+                res.status(200).json(sales || []);
+                return;
+            } catch (error) {
+                res.status(401).json({ error: 'Token inválido' });
+                return;
+            }
+        }
+
+        // Route: POST /api/sales - Create new sale
+        if (req.url && req.url.includes('/sales') && req.method === 'POST') {
+            const authHeader = req.headers.authorization || req.headers.Authorization;
+
+            if (!authHeader) {
+                res.status(401).json({ error: 'Token não fornecido' });
+                return;
+            }
+
+            const token = authHeader.replace('Bearer ', '');
+
+            try {
+                const decoded = jwt.verify(token, JWT_SECRET);
+                const { client, item, value, date } = body;
+
+                if (!client || !item || !value || !date) {
+                    res.status(400).json({ error: 'Todos os campos são obrigatórios' });
+                    return;
+                }
+
+                // Create sale
+                const { data: sale, error } = await supabase
+                    .from('sales')
+                    .insert({
+                        userId: decoded.userId,
+                        client,
+                        item,
+                        value: parseFloat(value),
+                        date,
+                        status: 'pending'
+                    })
+                    .select()
+                    .single();
+
+                if (error || !sale) {
+                    console.error('Supabase create sale error:', error);
+                    res.status(500).json({ error: 'Erro ao criar venda' });
+                    return;
+                }
+
+                res.status(201).json(sale);
+                return;
+            } catch (error) {
+                res.status(401).json({ error: 'Token inválido' });
+                return;
+            }
+        }
+
+        // Route: PATCH /api/sales/:id - Update sale status
+        if (req.url && req.url.includes('/sales/') && req.method === 'PATCH') {
+            const authHeader = req.headers.authorization || req.headers.Authorization;
+
+            if (!authHeader) {
+                res.status(401).json({ error: 'Token não fornecido' });
+                return;
+            }
+
+            const token = authHeader.replace('Bearer ', '');
+
+            try {
+                const decoded = jwt.verify(token, JWT_SECRET);
+                const saleId = req.url.split('/sales/')[1].split('?')[0];
+                const { status, paymentDate } = body;
+
+                // Update sale
+                const updateData = { status };
+                if (paymentDate) {
+                    updateData.paymentDate = paymentDate;
+                }
+
+                const { data: sale, error } = await supabase
+                    .from('sales')
+                    .update(updateData)
+                    .eq('id', saleId)
+                    .eq('userId', decoded.userId)
+                    .select()
+                    .single();
+
+                if (error || !sale) {
+                    console.error('Supabase update sale error:', error);
+                    res.status(500).json({ error: 'Erro ao atualizar venda' });
+                    return;
+                }
+
+                res.status(200).json(sale);
+                return;
+            } catch (error) {
+                res.status(401).json({ error: 'Token inválido' });
+                return;
+            }
+        }
+
+        // Route: DELETE /api/sales/:id - Delete sale
+        if (req.url && req.url.includes('/sales/') && req.method === 'DELETE') {
+            const authHeader = req.headers.authorization || req.headers.Authorization;
+
+            if (!authHeader) {
+                res.status(401).json({ error: 'Token não fornecido' });
+                return;
+            }
+
+            const token = authHeader.replace('Bearer ', '');
+
+            try {
+                const decoded = jwt.verify(token, JWT_SECRET);
+                const saleId = req.url.split('/sales/')[1].split('?')[0];
+
+                // Delete sale
+                const { error } = await supabase
+                    .from('sales')
+                    .delete()
+                    .eq('id', saleId)
+                    .eq('userId', decoded.userId);
+
+                if (error) {
+                    console.error('Supabase delete sale error:', error);
+                    res.status(500).json({ error: 'Erro ao deletar venda' });
+                    return;
+                }
+
+                res.status(204).end();
+                return;
+            } catch (error) {
+                res.status(401).json({ error: 'Token inválido' });
+                return;
+            }
+        }
+
         // Default 404
         res.status(404).json({
             error: 'Route not found',
