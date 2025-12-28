@@ -61,8 +61,10 @@ app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
     res.status(500).json({ error: 'Erro interno do servidor' });
 });
 
-// Start server only if run directly
-if (require.main === module) {
+// Start server only if NOT running in Vercel (serverless)
+// In Vercel, we export the app for the function handler.
+// Locally, we want to listen on the port.
+if (process.env.VERCEL !== '1') {
     app.listen(PORT, () => {
         console.log(`\n🚀 Servidor rodando na porta ${PORT}`);
         console.log(`📍 Health check: http://localhost:${PORT}/health`);
