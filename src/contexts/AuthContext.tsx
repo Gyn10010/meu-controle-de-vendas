@@ -26,21 +26,35 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     useEffect(() => {
         // Check for existing token on mount
-        const savedToken = localStorage.getItem('auth_token');
-        const savedUser = localStorage.getItem('user_data');
+        try {
+            const savedToken = localStorage.getItem('auth_token');
+            const savedUser = localStorage.getItem('user_data');
 
-        if (savedToken && savedUser) {
-            try {
-                setToken(savedToken);
-                setUser(JSON.parse(savedUser));
-            } catch (error) {
-                // If parsing fails, clear invalid data
-                console.error('Failed to parse saved user data:', error);
-                localStorage.removeItem('auth_token');
-                localStorage.removeItem('user_data');
+            if (savedToken && savedUser && savedUser !== 'undefined' && savedUser !== 'null') {
+                try {
+                    const parsedUser = JSON.parse(savedUser);
+                    // Validate that parsed user has required fields
+                    if (parsedUser && parsedUser.id && parsedUser.email) {
+                        setToken(savedToken);
+                        setUser(parsedUser);
+                    } else {
+                        // Invalid user data structure
+                        console.warn('Invalid user data structure, clearing localStorage');
+                        localStorage.removeItem('auth_token');
+                        localStorage.removeItem('user_data');
+                    }
+                } catch (parseError) {
+                    // If parsing fails, clear invalid data
+                    console.error('Failed to parse saved user data:', parseError);
+                    localStorage.removeItem('auth_token');
+                    localStorage.removeItem('user_data');
+                }
             }
+        } catch (error) {
+            console.error('Error accessing localStorage:', error);
+        } finally {
+            setIsLoading(false);
         }
-        setIsLoading(false);
     }, []);
 
     const login = async (email: string, password: string) => {
