@@ -15,9 +15,7 @@ const PORT = process.env.PORT || 5000;
 
 // Middleware
 app.use(cors({
-    origin: process.env.NODE_ENV === 'production'
-        ? [process.env.FRONTEND_URL || 'https://seu-frontend.vercel.app']
-        : ['http://localhost:3000', 'http://localhost:5173'],
+    origin: '*', // Allow all for debugging
     credentials: true
 }));
 app.use(express.json());
@@ -28,9 +26,22 @@ app.use((req, res, next) => {
     next();
 });
 
-// Health check
-app.get('/health', (req, res) => {
+// Health check mapped to /api/health
+app.get(['/health', '/api/health'], (req, res) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+// Diagnostic endpoint to check env vars
+app.get('/api/diagnose', (req, res) => {
+    const envStatus = {
+        NODE_ENV: process.env.NODE_ENV,
+        hasSupabaseUrl: !!process.env.SUPABASE_URL,
+        hasSupabaseKey: !!process.env.SUPABASE_KEY,
+        supabaseUrlStart: process.env.SUPABASE_URL ? process.env.SUPABASE_URL.substring(0, 8) + '...' : 'MISSING',
+        hasJwtSecret: !!process.env.JWT_SECRET,
+        hasJwtExpires: !!process.env.JWT_EXPIRES_IN,
+    };
+    res.json({ status: 'diagnostic', env: envStatus });
 });
 
 // Routes
