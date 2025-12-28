@@ -128,6 +128,7 @@ const App: React.FC = () => {
   };
 
   const salesHistory = useMemo(() => {
+    if (!sales || !Array.isArray(sales)) return [];
     return sales.filter(s => {
       const matchesClient = s.clientName.toLowerCase().includes(searchClient.toLowerCase());
       const matchesStart = startDate ? s.date >= startDate : true;
@@ -155,6 +156,7 @@ const App: React.FC = () => {
 
   const clientSummaries = useMemo(() => {
     const map = new Map<string, ClientSummary>();
+    if (!sales || !Array.isArray(sales)) return [];
     sales.filter(s => s.status === 'pending').forEach(s => {
       const existing = map.get(s.clientName);
       if (existing) {
