@@ -1,0 +1,6 @@
+# Ignore backend TypeScript files in Vercel deployment
+backend/src
+backend/tsconfig.json
+backend/.env
+*.ts
+!api/**
