@@ -30,8 +30,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         const savedUser = localStorage.getItem('user_data');
 
         if (savedToken && savedUser) {
-            setToken(savedToken);
-            setUser(JSON.parse(savedUser));
+            try {
+                setToken(savedToken);
+                setUser(JSON.parse(savedUser));
+            } catch (error) {
+                // If parsing fails, clear invalid data
+                console.error('Failed to parse saved user data:', error);
+                localStorage.removeItem('auth_token');
+                localStorage.removeItem('user_data');
+            }
         }
         setIsLoading(false);
     }, []);
