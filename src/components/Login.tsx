@@ -24,7 +24,9 @@ const Login: React.FC = () => {
                 await register(formData.email, formData.password, formData.name);
             }
         } catch (err: any) {
-            setError(err.message);
+            // Enhanced error handling
+            const message = err.response?.data?.error || err.message || 'Erro ao realizar login';
+            setError(typeof message === 'object' ? JSON.stringify(message) : message);
         } finally {
             setLoading(false);
         }
@@ -47,7 +49,7 @@ const Login: React.FC = () => {
                     </div>
 
                     {error && (
-                        <div className="mb-4 p-3 bg-red-100 dark:bg-red-900/30 border border-red-300 dark:border-red-700 rounded-lg text-red-700 dark:text-red-300 text-sm">
+                        <div className="mb-4 p-3 bg-red-100 dark:bg-red-900/30 border border-red-300 dark:border-red-700 rounded-lg text-red-700 dark:text-red-300 text-sm break-words">
                             {error}
                         </div>
                     )}
@@ -132,7 +134,7 @@ const Login: React.FC = () => {
                             </p>
                             <p className="text-xs text-blue-700 dark:text-blue-400">
                                 Email: demo@exemplo.com<br />
-                                Senha: 123456
+                                Senha: password123
                             </p>
                         </div>
                     )}
