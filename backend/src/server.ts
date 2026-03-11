@@ -5,6 +5,8 @@ import authRoutes from './routes/auth.routes';
 import salesRoutes from './routes/sales.routes';
 import clientsRoutes from './routes/clients.routes';
 import insightsRoutes from './routes/insights.routes';
+import productsRoutes from './routes/products.routes';
+import financialsRoutes from './routes/financials.routes';
 import { authMiddleware } from './middleware/auth.middleware';
 
 // Load environment variables
@@ -49,6 +51,8 @@ app.use('/api/auth', authRoutes);
 app.use('/api/sales', authMiddleware, salesRoutes);
 app.use('/api/clients', authMiddleware, clientsRoutes);
 app.use('/api/insights', authMiddleware, insightsRoutes);
+app.use('/api/products', authMiddleware, productsRoutes);
+app.use('/api/financials', authMiddleware, financialsRoutes);
 
 // 404 handler
 app.use((req, res) => {

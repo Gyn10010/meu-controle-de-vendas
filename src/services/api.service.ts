@@ -116,6 +116,28 @@ class ApiService {
         const response = await this.api.post('/insights/generate');
         return response.data;
     }
+
+    // Products endpoints
+    async getProducts() {
+        const response = await this.api.get('/products');
+        return response.data;
+    }
+
+    async createProduct(product: any) {
+        const response = await this.api.post('/products', product);
+        return response.data;
+    }
+
+    // Financials endpoints
+    async getFinancials() {
+        const response = await this.api.get('/financials');
+        return response.data;
+    }
+
+    async updateFinancials(financialData: any) {
+        const response = await this.api.put('/financials', financialData);
+        return response.data;
+    }
 }
 
 export const apiService = new ApiService();
